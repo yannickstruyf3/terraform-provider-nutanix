@@ -32,6 +32,31 @@ func TestAccNutanixVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "categories.environment-terraform", "staging"),
 				),
 			},
+		},
+	})
+}
+
+func TestAccNutanixVirtualMachine_update(t *testing.T) {
+	r := acctest.RandInt()
+	resourceName := "nutanix_virtual_machine.vm1"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNutanixVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNutanixVMConfig(r),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "hardware_clock_timezone", "UTC"),
+					resource.TestCheckResourceAttr(resourceName, "power_state", "ON"),
+					resource.TestCheckResourceAttr(resourceName, "memory_size_mib", "186"),
+					resource.TestCheckResourceAttr(resourceName, "num_sockets", "1"),
+					resource.TestCheckResourceAttr(resourceName, "num_vcpus_per_socket", "1"),
+					resource.TestCheckResourceAttr(resourceName, "categories.%", "1"),
+					resource.TestCheckResourceAttr(resourceName, "categories.environment-terraform", "staging"),
+				),
+			},
 			{
 				Config: testAccNutanixVMConfigUpdate(r),
 				Check: resource.ComposeTestCheckFunc(
