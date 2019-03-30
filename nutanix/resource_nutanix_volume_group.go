@@ -98,10 +98,10 @@ func resourceNutanixVolumeGroupRead(d *schema.ResourceData, meta interface{}) er
 	if err := d.Set("categories", c); err != nil {
 		return err
 	}
-	if err := d.Set("project_reference", getReferenceValues(resp.Metadata.ProjectReference)); err != nil {
+	if err := d.Set("project_reference", flattenReferenceValues(resp.Metadata.ProjectReference)); err != nil {
 		return err
 	}
-	if err := d.Set("owner_reference", getReferenceValues(resp.Metadata.OwnerReference)); err != nil {
+	if err := d.Set("owner_reference", flattenReferenceValues(resp.Metadata.OwnerReference)); err != nil {
 		return err
 	}
 
@@ -119,7 +119,7 @@ func resourceNutanixVolumeGroupRead(d *schema.ResourceData, meta interface{}) er
 		attachList = make([]map[string]interface{}, len(al))
 		for k, v := range al {
 			attach := make(map[string]interface{})
-			attach["vm_reference"] = getClusterReferenceValues(v.VMReference)
+			attach["vm_uuid"] = utils.StringValue(v.VMReference.UUID)
 			attach["iscsi_initiator_name"] = utils.StringValue(v.IscsiInitiatorName)
 			attachList[k] = attach
 		}
@@ -139,7 +139,7 @@ func resourceNutanixVolumeGroupRead(d *schema.ResourceData, meta interface{}) er
 			vgDisk["index"] = utils.Int64Value(v.Index)
 			vgDisk["disk_size_mib"] = utils.Int64Value(v.DiskSizeMib)
 			vgDisk["storage_container_uuid"] = utils.StringValue(v.StorageContainerUUID)
-			vgDisk["vm_reference"] = getClusterReferenceValues(v.DataSourceReference)
+			vgDisk["data_source_reference"] = flattenReferenceValues(v.DataSourceReference)
 			diskList[k] = vgDisk
 		}
 	}
@@ -520,22 +520,9 @@ func getVGSchema() map[string]*schema.Schema {
 			Computed: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"vm_reference": {
-						Type:     schema.TypeMap,
+					"vm_uuid": {
+						Type:     schema.TypeString,
 						Optional: true,
-						Computed: true,
-						Elem: &schema.Resource{
-							Schema: map[string]*schema.Schema{
-								"kind": {
-									Type:     schema.TypeString,
-									Required: true,
-								},
-								"uuid": {
-									Type:     schema.TypeString,
-									Required: true,
-								},
-							},
-						},
 					},
 					"iscsi_initiator_name": {
 						Type:     schema.TypeString,

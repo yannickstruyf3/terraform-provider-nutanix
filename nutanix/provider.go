@@ -59,8 +59,8 @@ func Provider() terraform.ResourceProvider {
 			"nutanix_subnet":          resourceNutanixSubnet(),
 			"nutanix_category_key":    resourceNutanixCategoryKey(),
 			"nutanix_category_value":  resourceNutanixCategoryValue(),
+			"nutanix_volume_group":    resourceNutanixVolumeGroup(),
 			// "nutanix_network_security_rule": resourceNutanixNetworkSecurityRule(),
-			// "nutanix_volume_group":          resourceNutanixVolumeGroup(),
 		},
 		ConfigureFunc: providerConfigure,
 	}

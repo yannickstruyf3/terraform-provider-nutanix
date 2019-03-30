@@ -13,7 +13,7 @@ import (
 
 func TestAccNutanixVolumeGroup_basic(t *testing.T) {
 	// Skipping as this test needs functional work
-	t.Skip()
+	//t.Skip()
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -75,22 +75,17 @@ func testAccCheckNutanixVolumeGroupDestroy(s *terraform.State) error {
 
 func testAccNutanixVolumeGroupConfig(r int) string {
 	return fmt.Sprintf(`
-data "nutanix_clusters" "clusters" {
-  metadata = {
-    length = 2
-  }
-}
-output "cluster" {
-  value = "${data.nutanix_clusters.clusters.entities.0.metadata.uuid}"
-}
+// data "nutanix_clusters" "clusters" {}
+
+// locals {
+// 		cluster1 = "${data.nutanix_clusters.clusters.entities.0.service_list.0 == "PRISM_CENTRAL"
+// 		? data.nutanix_clusters.clusters.entities.1.metadata.uuid : data.nutanix_clusters.clusters.entities.0.metadata.uuid}"
+// }
+
 resource "nutanix_volume_group" "test_volume" {
 	name        = "Test Volume Group %d"
 	description = "Tes Volume Group Description"
-
-  cluster_reference = {
-	  kind = "cluster"
-	  uuid = "${data.nutanix_clusters.clusters.entities.0.metadata.uuid}"
-  }
+  	#cluster_uuid = "${local.cluster1}"
 
 }
 `, r)
