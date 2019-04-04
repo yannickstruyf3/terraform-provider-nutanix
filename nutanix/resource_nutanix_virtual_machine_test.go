@@ -212,7 +212,9 @@ resource "nutanix_virtual_machine" "vm1" {
   
   num_vcpus_per_socket = 1
   num_sockets          = 1
-  memory_size_mib      = 186
+	memory_size_mib      = 186
+	
+	boot_device_order_list = ["DISK", "CDROM"]
 
 
 	categories {
@@ -324,7 +326,9 @@ resource "nutanix_virtual_machine" "vm1" {
   cluster_uuid = "${local.cluster1}"
   num_vcpus_per_socket = 1
   num_sockets          = 2
-  memory_size_mib      = 186
+	memory_size_mib      = 186
+	
+	boot_device_order_list = ["DISK", "CDROM"]
 
 	categories {
 		Environment = "Production"

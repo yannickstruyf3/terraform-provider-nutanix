@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/terraform-providers/terraform-provider-nutanix/client/v3"
+	v3 "github.com/terraform-providers/terraform-provider-nutanix/client/v3"
 	"github.com/terraform-providers/terraform-provider-nutanix/utils"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -1377,6 +1377,8 @@ func getVMResources(d *schema.ResourceData, vm *v3.VMResources) error {
 	if v, ok := d.GetOk("memory_size_mib"); ok {
 		vm.MemorySizeMib = utils.Int64Ptr(int64(v.(int)))
 	}
+
+	vm.BootConfig = &v3.VMBootConfig{}
 
 	if v, ok := d.GetOk("boot_device_order_list"); ok {
 		vm.BootConfig.BootDeviceOrderList = expandStringList(v.([]interface{}))
