@@ -1462,7 +1462,11 @@ func getVMResources(d *schema.ResourceData, vm *v3.VMResources) error {
 	}
 
 	if v, ok := d.GetOk("guest_customization_cloud_init_custom_key_values"); ok {
-		cloudInit.CustomKeyValues = v.(map[string]string)
+		customKeyValues := make(map[string]string)
+		for k, v := range v.(map[string]interface{}) {
+			customKeyValues[k] = v.(string)
+		}
+		cloudInit.CustomKeyValues = customKeyValues
 	}
 
 	if !reflect.DeepEqual(*cloudInit, (v3.GuestCustomizationCloudInit{})) {

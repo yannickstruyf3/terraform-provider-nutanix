@@ -192,6 +192,39 @@ func TestAccNutanixVirtualMachine_WithSerialPortList(t *testing.T) {
 	})
 }
 
+func TestAccNutanixVirtualMachine_WithGuestCustomization(t *testing.T) {
+	r := acctest.RandInt()
+	resourceName := "nutanix_virtual_machine.vm6"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNutanixVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNutanixVMConfigWithGuestCustomization(r),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "hardware_clock_timezone", "UTC"),
+					resource.TestCheckResourceAttr(resourceName, "power_state", "ON"),
+					resource.TestCheckResourceAttr(resourceName, "memory_size_mib", "186"),
+					resource.TestCheckResourceAttr(resourceName, "num_sockets", "1"),
+					resource.TestCheckResourceAttr(resourceName, "num_vcpus_per_socket", "1"),
+					resource.TestCheckResourceAttr(resourceName, "categories.%", "1"),
+					resource.TestCheckResourceAttr(resourceName, "categories.Environment", "Staging"),
+					resource.TestCheckResourceAttr(resourceName, "serial_port_list.0.index", "1"),
+					resource.TestCheckResourceAttr(resourceName, "serial_port_list.0.is_connected", "true"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disk_list"},
+			},
+		},
+	})
+}
+
 func testAccCheckNutanixVirtualMachineExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -527,5 +560,51 @@ resource "nutanix_virtual_machine" "vm5" {
 		Environment = "Staging"
 	}
 }
+`, r)
+}
+
+func testAccNutanixVMConfigWithGuestCustomization(r int) string {
+	return fmt.Sprintf(`
+	data "nutanix_clusters" "clusters" {}
+
+	locals {
+			cluster1 = "${data.nutanix_clusters.clusters.entities.0.service_list.0 == "PRISM_CENTRAL"
+			? data.nutanix_clusters.clusters.entities.1.metadata.uuid : data.nutanix_clusters.clusters.entities.0.metadata.uuid}"
+	}
+	
+	resource "nutanix_image" "cirros-034-disk" {
+			name        = "test-image-dou-vm-create-%[1]d"
+			source_uri  = "http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
+			description = "heres a tiny linux image, not an iso, but a real disk!"
+	}
+	
+	resource "nutanix_virtual_machine" "vm6" {
+		name = "test-dou-vm-%[1]d"
+		cluster_uuid = "${local.cluster1}"
+		num_vcpus_per_socket = 1
+		num_sockets          = 1
+		memory_size_mib      = 186
+
+		guest_customization_cloud_init_custom_key_values = {
+			"username" = "cirrosnew"
+			"password" = "nutanix/4u"
+			
+		}
+	
+		disk_list = [{
+			data_source_reference = [{
+				kind = "image"
+				uuid = "${nutanix_image.cirros-034-disk.id}"
+			}]
+	
+			device_properties = [{
+				disk_address {
+					device_index = 0,
+					adapter_type = "SCSI"
+				}
+				device_type = "DISK"
+			}]
+		}]
+	}
 `, r)
 }
