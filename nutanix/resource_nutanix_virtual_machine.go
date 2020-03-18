@@ -365,6 +365,7 @@ func resourceNutanixVirtualMachine() *schema.Resource {
 			},
 			"power_state": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
 			},
 			"nutanix_guest_tools": {
@@ -902,17 +903,20 @@ func resourceNutanixVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	diskAddress := make(map[string]interface{})
 	mac := ""
 	b := make([]string, 0)
-
 	if resp.Status.Resources.BootConfig != nil {
-		if resp.Status.Resources.BootConfig.BootDevice.DiskAddress != nil {
-			i := strconv.Itoa(int(utils.Int64Value(resp.Status.Resources.BootConfig.BootDevice.DiskAddress.DeviceIndex)))
-			diskAddress["device_index"] = i
-			diskAddress["adapter_type"] = utils.StringValue(resp.Status.Resources.BootConfig.BootDevice.DiskAddress.AdapterType)
+		if resp.Status.Resources.BootConfig.BootDevice != nil {
+			if resp.Status.Resources.BootConfig.BootDevice.DiskAddress != nil {
+				i := strconv.Itoa(int(utils.Int64Value(resp.Status.Resources.BootConfig.BootDevice.DiskAddress.DeviceIndex)))
+				diskAddress["device_index"] = i
+				diskAddress["adapter_type"] = utils.StringValue(resp.Status.Resources.BootConfig.BootDevice.DiskAddress.AdapterType)
+			}
+			if resp.Status.Resources.BootConfig.BootDevice.MacAddress != nil {
+				mac = utils.StringValue(resp.Status.Resources.BootConfig.BootDevice.MacAddress)
+			}
 		}
 		if resp.Status.Resources.BootConfig.BootDeviceOrderList != nil {
 			b = utils.StringValueSlice(resp.Status.Resources.BootConfig.BootDeviceOrderList)
 		}
-		mac = utils.StringValue(resp.Status.Resources.BootConfig.BootDevice.MacAddress)
 	}
 
 	d.Set("boot_device_order_list", b)
@@ -1103,6 +1107,10 @@ func resourceNutanixVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		guest.IsOverridable = utils.BoolPtr(n.(bool))
 		hotPlugChange = false
 	}
+	if d.HasChange("power_state") {
+		_, n := d.GetChange("power_state")
+		res.PowerState = utils.StringPtr(n.(string))
+	}
 	if d.HasChange("power_state_mechanism") {
 		_, n := d.GetChange("power_state_mechanism")
 		pw.Mechanism = utils.StringPtr(n.(string))
@@ -1278,11 +1286,13 @@ func resourceNutanixVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 			"error waiting for vm (%s) to update: %s", d.Id(), err)
 	}
 
-	//Tehn, Turn On the VM.
-	if err := changePowerState(conn, d.Id(), "ON"); err != nil {
-		return fmt.Errorf("internal error: cannot turn ON the VM with UUID(%s): %s", d.Id(), err)
+	current_powerstate := getPowerState(d)
+	if current_powerstate == "ON" {
+		//Then, Turn On the VM.
+		if err := changePowerState(conn, d.Id(), "ON"); err != nil {
+			return fmt.Errorf("internal error: cannot turn ON the VM with UUID(%s): %s", d.Id(), err)
+		}
 	}
-
 	return resourceNutanixVirtualMachineRead(d, meta)
 }
 
@@ -1443,6 +1453,12 @@ func resourceNutanixVirtualMachineExists(d *schema.ResourceData, meta interface{
 
 func getVMResources(d *schema.ResourceData, vm *v3.VMResources) error {
 	vm.PowerState = utils.StringPtr("ON")
+	if v, ok := d.GetOk("power_state"); ok {
+		if v.(string) != "ON" && v.(string) != "OFF" {
+			return fmt.Errorf("power_state needs to be ON or OFF")
+		}
+		vm.PowerState = utils.StringPtr(v.(string))
+	}
 
 	if v, ok := d.GetOk("num_vnuma_nodes"); ok {
 		vm.VMVnumaConfig.NumVnumaNodes = utils.Int64Ptr(v.(int64))
@@ -1934,4 +1950,11 @@ func CountDiskListCdrom(dl []*v3.VMDisk) (int, error) {
 	}
 	log.Printf("=====")
 	return counter, nil
+}
+
+func getPowerState(d *schema.ResourceData) string {
+	if current_powerstate, ok := d.GetOk("power_state"); ok {
+		return current_powerstate.(string)
+	}
+	return "ON"
 }

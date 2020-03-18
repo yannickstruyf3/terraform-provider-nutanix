@@ -241,6 +241,68 @@ func TestAccNutanixVirtualMachine_CdromGuestCustomisationReboot(t *testing.T) {
 	})
 }
 
+func TestAccNutanixVirtualMachine_PowerstateOffToOn(t *testing.T) {
+	r := acctest.RandInt()
+	resourceName := "nutanix_virtual_machine.vm8"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNutanixVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNutanixVMConfigPowerstateOff(r),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "power_state", "OFF"),
+				),
+			},
+			{
+				Config: testAccNutanixVMConfigPowerstateOn(r),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "power_state", "ON"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disk_list"},
+			},
+		},
+	})
+}
+
+func TestAccNutanixVirtualMachine_PowerstateOnToOff(t *testing.T) {
+	r := acctest.RandInt()
+	resourceName := "nutanix_virtual_machine.vm8"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNutanixVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNutanixVMConfigPowerstateOn(r),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+				),
+			},
+			{
+				Config: testAccNutanixVMConfigPowerstateOff(r),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disk_list"},
+			},
+		},
+	})
+}
+
 func testAccCheckNutanixVirtualMachineExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -628,6 +690,48 @@ resource "nutanix_virtual_machine" "vm7" {
   num_sockets          = 1
   memory_size_mib      = 186
   guest_customization_cloud_init_user_data = base64encode("#cloud-config\nfqdn: test.domain.local")
+}
+`, r)
+}
+
+func testAccNutanixVMConfigPowerstateOff(r int) string {
+	return fmt.Sprintf(`
+data "nutanix_clusters" "clusters" {}
+
+locals {
+		cluster1 = "${data.nutanix_clusters.clusters.entities.0.service_list.0 == "PRISM_CENTRAL"
+		? data.nutanix_clusters.clusters.entities.1.metadata.uuid : data.nutanix_clusters.clusters.entities.0.metadata.uuid}"
+}
+
+resource "nutanix_virtual_machine" "vm8" {
+  name = "test-dou-%d"
+  cluster_uuid = "${local.cluster1}"
+  
+  num_vcpus_per_socket = 1
+  num_sockets          = 1
+  memory_size_mib      = 186
+  power_state = "OFF"
+}
+`, r)
+}
+
+func testAccNutanixVMConfigPowerstateOn(r int) string {
+	return fmt.Sprintf(`
+data "nutanix_clusters" "clusters" {}
+
+locals {
+		cluster1 = "${data.nutanix_clusters.clusters.entities.0.service_list.0 == "PRISM_CENTRAL"
+		? data.nutanix_clusters.clusters.entities.1.metadata.uuid : data.nutanix_clusters.clusters.entities.0.metadata.uuid}"
+}
+
+resource "nutanix_virtual_machine" "vm8" {
+  name = "test-dou-%d"
+  cluster_uuid = "${local.cluster1}"
+  
+  num_vcpus_per_socket = 1
+  num_sockets          = 1
+  memory_size_mib      = 186
+  power_state = "ON"
 }
 `, r)
 }
