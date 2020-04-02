@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	v2 "github.com/terraform-providers/terraform-provider-nutanix/client/v2"
 	v3 "github.com/terraform-providers/terraform-provider-nutanix/client/v3"
 	"github.com/terraform-providers/terraform-provider-nutanix/utils"
 
@@ -896,7 +897,7 @@ func resourceNutanixVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("error setting nic_list_status for Virtual Machine %s: %s", d.Id(), err)
 	}
 
-	if err := d.Set("disk_list", flattenDiskList(resp.Spec.Resources.DiskList)); err != nil {
+	if err := d.Set("disk_list", flattenDiskListWrapper(resp.Spec.Resources.DiskList, d.Id(), meta)); err != nil {
 		return fmt.Errorf("error setting disk_list for Virtual Machine %s: %s", d.Id(), err)
 	}
 
@@ -1197,7 +1198,9 @@ func resourceNutanixVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		if err != nil {
 			return err
 		}
-		if res.DiskList, err = expandDiskList(d, false); err != nil {
+
+		if res.DiskList, err = expandDiskListUpdate(d, meta, response); err != nil {
+			// if res.DiskList, err = expandDiskList(d, false); err != nil {
 			return err
 		}
 		postCdromCount, err := CountDiskListCdrom(res.DiskList)
@@ -1948,6 +1951,93 @@ func CountDiskListCdrom(dl []*v3.VMDisk) (int, error) {
 		}
 	}
 	return counter, nil
+}
+
+func expandDiskListUpdate(d *schema.ResourceData, meta interface{}, vm *v3.VMIntentResponse) ([]*v3.VMDisk, error) {
+	expandedDiskList := make([]*v3.VMDisk, 0)
+	var err error
+	if expandedDiskList, err = expandDiskList(d, false); err != nil {
+		return expandedDiskList, err
+	}
+	log.Println("[TESTING] PRE expandedDiskList ", len(expandedDiskList))
+	deprecatedDiskList := getExtensiveDiskInfoViaDeprecatedAPI(d.Id(), meta)
+	cdromCloudInitUuids := getAllCdromCloudinitUUIDs(deprecatedDiskList)
+	for _, disk := range vm.Spec.Resources.DiskList {
+		diskUuid := disk.UUID
+		if _, ok := cdromCloudInitUuids[*diskUuid]; ok {
+			expandedDiskList = append(expandedDiskList, disk)
+		}
+	}
+
+	log.Println("[TESTING] POST expandedDiskList ", len(expandedDiskList))
+	return expandedDiskList, nil
+}
+
+func getExtensiveDiskInfoViaDeprecatedAPI(vm_id string, meta interface{}) []v2.VmDiskInfo {
+	deprecatedConn := meta.(*Client).DeprecatedAPI
+	respdepr, errdepr := deprecatedConn.V2.GetVM(vm_id)
+	if errdepr != nil {
+		log.Println("[WARNING] Error occured reading VM from deprecated API. continuing without...")
+		return make([]v2.VmDiskInfo, 0)
+	}
+	return *respdepr.VmDiskInfo
+}
+
+func getAllCdromCloudinitUUIDs(disks []v2.VmDiskInfo) map[string]v2.VmDiskInfo {
+	uuids := make(map[string]v2.VmDiskInfo)
+	for _, disk := range disks {
+		log.Println("failing if 0")
+		if disk.DiskAddress != nil {
+			if disk.DiskAddress.DeviceUUID != nil {
+				if isCdromCloudinit(disk) == true {
+					uuids[*disk.DiskAddress.DeviceUUID] = disk
+				}
+			}
+		}
+	}
+	return uuids
+}
+
+func isCdromCloudinit(diskInfo v2.VmDiskInfo) bool {
+	if *diskInfo.IsCdrom == true {
+		if diskInfo.SourceDiskAddress != nil {
+			if diskInfo.SourceDiskAddress.NdfsFilepath != nil {
+				ndfs := diskInfo.SourceDiskAddress.NdfsFilepath
+				if strings.Contains(*ndfs, "/.vm_customization_isos/") {
+					log.Println("[TESTING] isCdromCloudinit returing true")
+					return true
+				}
+			}
+		}
+	}
+	log.Println("[TESTING] isCdromCloudinit returing false")
+	return false
+}
+
+func flattenDiskListWrapper(disks []*v3.VMDisk, vm_id string, meta interface{}) []map[string]interface{} {
+	log.Println("[TESTING] in flattenDiskListWrapper")
+
+	flatDiskList := flattenDiskList(disks)
+	deprecatedDiskList := getExtensiveDiskInfoViaDeprecatedAPI(vm_id, meta)
+	if len(deprecatedDiskList) == 0 {
+		return flatDiskList
+	}
+	newFlatDiskList := make([]map[string]interface{}, 0)
+	cdromCloudInitUuids := getAllCdromCloudinitUUIDs(deprecatedDiskList)
+	for _, disk := range flatDiskList {
+		doAppend := true
+		diskUuid := disk["uuid"].(string)
+		if _, ok := cdromCloudInitUuids[diskUuid]; ok {
+			doAppend = false
+		}
+
+		if doAppend == true {
+			newFlatDiskList = append(newFlatDiskList, disk)
+		}
+	}
+	log.Println("len(newFlatDiskList) ", len(newFlatDiskList))
+	log.Println("len(flatDiskList) ", len(flatDiskList))
+	return newFlatDiskList
 }
 
 func resourceVirtualMachineInstanceStateUpgradeV0(is map[string]interface{}, meta interface{}) (map[string]interface{}, error) {

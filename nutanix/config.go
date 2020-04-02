@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/terraform-providers/terraform-provider-nutanix/client"
+	v2 "github.com/terraform-providers/terraform-provider-nutanix/client/v2"
 	v3 "github.com/terraform-providers/terraform-provider-nutanix/client/v3"
 )
 
@@ -37,15 +38,20 @@ func (c *Config) Client() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	v2Client, err := v2.NewV2Client(configCreds)
+	if err != nil {
+		return nil, err
+	}
 	return &Client{
-		WaitTimeout: c.WaitTimeout,
-		API:         v3Client,
+		WaitTimeout:   c.WaitTimeout,
+		API:           v3Client,
+		DeprecatedAPI: v2Client,
 	}, nil
 }
 
 // Client represents the nutanix API client
 type Client struct {
-	API         *v3.Client
-	WaitTimeout int64
+	API           *v3.Client
+	DeprecatedAPI *v2.Client
+	WaitTimeout   int64
 }

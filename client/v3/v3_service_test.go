@@ -23,7 +23,14 @@ func setup() (*http.ServeMux, *client.Client, *httptest.Server) {
 		Password: "password",
 		Port:     "",
 		Endpoint: "",
-		Insecure: true})
+		Insecure: true},
+		&client.ApiMetadata{
+			LibraryVersion: "v3",
+			DefaultBaseURL: "https://%s/",
+			AbsolutePath:   "api/nutanix/" + libraryVersion,
+			UserAgent:      "nutanix/" + libraryVersion,
+			MediaType:      "application/json",
+		})
 	c.BaseURL, _ = url.Parse(server.URL)
 
 	return mux, c, server

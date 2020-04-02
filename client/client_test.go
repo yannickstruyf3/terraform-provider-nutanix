@@ -16,38 +16,58 @@ func setup() (*http.ServeMux, *Client, *httptest.Server) {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 
-	client, _ := NewClient(&Credentials{"", "username", "password", "", "", true, ""})
+	client, _ := NewClient(&Credentials{"", "username", "password", "", "", true, ""}, &ApiMetadata{
+		LibraryVersion: "v3",
+		DefaultBaseURL: "https://%s/",
+		AbsolutePath:   "api/nutanix/v3",
+		UserAgent:      "nutanix/v3",
+		MediaType:      "application/json",
+	})
 	client.BaseURL, _ = url.Parse(server.URL)
 
 	return mux, client, server
 }
 
 func TestNewClient(t *testing.T) {
-	c, err := NewClient(&Credentials{"foo.com", "username", "password", "", "", true, ""})
+	c, err := NewClient(&Credentials{"foo.com", "username", "password", "", "", true, ""}, &ApiMetadata{
+		LibraryVersion: "v3",
+		DefaultBaseURL: "https://%s/",
+		AbsolutePath:   "api/nutanix/v3",
+		UserAgent:      "nutanix/v3",
+		MediaType:      "application/json",
+	})
 
 	if err != nil {
 		t.Errorf("Unexpected Error: %v", err)
 	}
 
-	expectedURL := fmt.Sprintf(defaultBaseURL, "foo.com")
+	expectedURL := fmt.Sprintf(c.ApiMetadata.DefaultBaseURL, "foo.com")
 
 	if c.BaseURL == nil || c.BaseURL.String() != expectedURL {
 		t.Errorf("NewClient BaseURL = %v, expected %v", c.BaseURL, expectedURL)
 	}
 
-	if c.UserAgent != userAgent {
-		t.Errorf("NewClient UserAgent = %v, expected %v", c.UserAgent, userAgent)
+	userAgent := "nutanix/v3"
+
+	if c.ApiMetadata.UserAgent != userAgent {
+		t.Errorf("NewClient UserAgent = %v, expected %v", c.ApiMetadata.UserAgent, userAgent)
 	}
 }
 
 func TestNewRequest(t *testing.T) {
-	c, err := NewClient(&Credentials{"foo.com", "username", "password", "", "", true, ""})
+	c, err := NewClient(&Credentials{"foo.com", "username", "password", "", "", true, ""}, &ApiMetadata{
+		LibraryVersion: "v3",
+		DefaultBaseURL: "https://%s/",
+		AbsolutePath:   "api/nutanix/v3",
+		UserAgent:      "nutanix/v3",
+		MediaType:      "application/json",
+	})
 
 	if err != nil {
 		t.Errorf("Unexpected Error: %v", err)
 	}
 
-	inURL, outURL := "/foo", fmt.Sprintf(defaultBaseURL+absolutePath+"/foo", "foo.com")
+	inURL, outURL := "/foo", fmt.Sprintf(c.ApiMetadata.DefaultBaseURL+c.ApiMetadata.AbsolutePath+"/foo", "foo.com")
 	inBody, outBody := map[string]interface{}{"name": "bar"}, `{"name":"bar"}`+"\n"
 
 	req, _ := c.NewRequest(context.TODO(), http.MethodPost, inURL, inBody)
@@ -240,7 +260,7 @@ func TestClient_NewRequest(t *testing.T) {
 		Credentials        *Credentials
 		client             *http.Client
 		BaseURL            *url.URL
-		UserAgent          string
+		ApiMetadata        *ApiMetadata
 		onRequestCompleted RequestCompletionCallback
 	}
 	type args struct {
@@ -267,7 +287,7 @@ func TestClient_NewRequest(t *testing.T) {
 				Credentials:        tt.fields.Credentials,
 				client:             tt.fields.client,
 				BaseURL:            tt.fields.BaseURL,
-				UserAgent:          tt.fields.UserAgent,
+				ApiMetadata:        tt.fields.ApiMetadata,
 				onRequestCompleted: tt.fields.onRequestCompleted,
 			}
 			got, err := c.NewRequest(tt.args.ctx, tt.args.method, tt.args.urlStr, tt.args.body)
@@ -287,7 +307,7 @@ func TestClient_NewUploadRequest(t *testing.T) {
 		Credentials        *Credentials
 		client             *http.Client
 		BaseURL            *url.URL
-		UserAgent          string
+		ApiMetadata        *ApiMetadata
 		onRequestCompleted RequestCompletionCallback
 	}
 	type args struct {
@@ -314,7 +334,7 @@ func TestClient_NewUploadRequest(t *testing.T) {
 				Credentials:        tt.fields.Credentials,
 				client:             tt.fields.client,
 				BaseURL:            tt.fields.BaseURL,
-				UserAgent:          tt.fields.UserAgent,
+				ApiMetadata:        tt.fields.ApiMetadata,
 				onRequestCompleted: tt.fields.onRequestCompleted,
 			}
 			got, err := c.NewUploadRequest(tt.args.ctx, tt.args.method, tt.args.urlStr, tt.args.body)
@@ -334,7 +354,7 @@ func TestClient_OnRequestCompleted(t *testing.T) {
 		Credentials        *Credentials
 		client             *http.Client
 		BaseURL            *url.URL
-		UserAgent          string
+		ApiMetadata        *ApiMetadata
 		onRequestCompleted RequestCompletionCallback
 	}
 	type args struct {
@@ -355,7 +375,7 @@ func TestClient_OnRequestCompleted(t *testing.T) {
 				Credentials:        tt.fields.Credentials,
 				client:             tt.fields.client,
 				BaseURL:            tt.fields.BaseURL,
-				UserAgent:          tt.fields.UserAgent,
+				ApiMetadata:        tt.fields.ApiMetadata,
 				onRequestCompleted: tt.fields.onRequestCompleted,
 			}
 			c.OnRequestCompleted(tt.args.rc)
@@ -368,7 +388,7 @@ func TestClient_Do(t *testing.T) {
 		Credentials        *Credentials
 		client             *http.Client
 		BaseURL            *url.URL
-		UserAgent          string
+		ApiMetadata        *ApiMetadata
 		onRequestCompleted RequestCompletionCallback
 	}
 	type args struct {
@@ -393,7 +413,7 @@ func TestClient_Do(t *testing.T) {
 				Credentials:        tt.fields.Credentials,
 				client:             tt.fields.client,
 				BaseURL:            tt.fields.BaseURL,
-				UserAgent:          tt.fields.UserAgent,
+				ApiMetadata:        tt.fields.ApiMetadata,
 				onRequestCompleted: tt.fields.onRequestCompleted,
 			}
 			if err := c.Do(tt.args.ctx, tt.args.req, tt.args.v); (err != nil) != tt.wantErr {

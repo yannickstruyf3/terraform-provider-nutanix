@@ -16,17 +16,19 @@ import (
 	"github.com/hashicorp/terraform/helper/logging"
 )
 
-const (
-	libraryVersion = "v3"
-	defaultBaseURL = "https://%s/"
-	absolutePath   = "api/nutanix/" + libraryVersion
-	userAgent      = "nutanix/" + libraryVersion
-	mediaType      = "application/json"
-)
+// const (
+// 	libraryVersion = "v3"
+// 	defaultBaseURL = "https://%s/"
+// 	absolutePath   = "api/nutanix/" + libraryVersion
+// 	userAgent      = "nutanix/" + libraryVersion
+// 	mediaType      = "application/json"
+// )
 
 // Client Config Configuration of the client
 type Client struct {
 	Credentials *Credentials
+
+	ApiMetadata *ApiMetadata
 
 	// HTTP client used to communicate with the Nutanix API.
 	client *http.Client
@@ -35,7 +37,7 @@ type Client struct {
 	BaseURL *url.URL
 
 	// User agent for client
-	UserAgent string
+	// UserAgent string
 
 	// Optional function called after every successful request made.
 	onRequestCompleted RequestCompletionCallback
@@ -55,8 +57,16 @@ type Credentials struct {
 	ProxyURL string
 }
 
+type ApiMetadata struct {
+	LibraryVersion string
+	DefaultBaseURL string
+	AbsolutePath   string
+	UserAgent      string
+	MediaType      string
+}
+
 // NewClient returns a new Nutanix API client.
-func NewClient(credentials *Credentials) (*Client, error) {
+func NewClient(credentials *Credentials, apiMetadata *ApiMetadata) (*Client, error) {
 	transCfg := &http.Transport{
 		// nolint:gas
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: credentials.Insecure}, // ignore expired SSL certificates
@@ -76,20 +86,20 @@ func NewClient(credentials *Credentials) (*Client, error) {
 
 	httpClient.Transport = logging.NewTransport("Nutanix", transCfg)
 
-	baseURL, err := url.Parse(fmt.Sprintf(defaultBaseURL, credentials.URL))
+	baseURL, err := url.Parse(fmt.Sprintf(apiMetadata.DefaultBaseURL, credentials.URL))
 
 	if err != nil {
 		return nil, err
 	}
 
-	c := &Client{credentials, httpClient, baseURL, userAgent, nil}
+	c := &Client{credentials, apiMetadata, httpClient, baseURL, nil}
 
 	return c, nil
 }
 
 // NewRequest creates a request
 func (c *Client) NewRequest(ctx context.Context, method, urlStr string, body interface{}) (*http.Request, error) {
-	rel, errp := url.Parse(absolutePath + urlStr)
+	rel, errp := url.Parse(c.ApiMetadata.AbsolutePath + urlStr)
 	if errp != nil {
 		return nil, errp
 	}
@@ -111,9 +121,9 @@ func (c *Client) NewRequest(ctx context.Context, method, urlStr string, body int
 		return nil, err
 	}
 
-	req.Header.Add("Content-Type", mediaType)
-	req.Header.Add("Accept", mediaType)
-	req.Header.Add("User-Agent", c.UserAgent)
+	req.Header.Add("Content-Type", c.ApiMetadata.MediaType)
+	req.Header.Add("Accept", c.ApiMetadata.MediaType)
+	req.Header.Add("User-Agent", c.ApiMetadata.UserAgent)
 	req.Header.Add("Authorization", "Basic "+
 		base64.StdEncoding.EncodeToString([]byte(c.Credentials.Username+":"+c.Credentials.Password)))
 
@@ -122,7 +132,7 @@ func (c *Client) NewRequest(ctx context.Context, method, urlStr string, body int
 
 // NewUploadRequest Handles image uploads for image service
 func (c *Client) NewUploadRequest(ctx context.Context, method, urlStr string, body []byte) (*http.Request, error) {
-	rel, errp := url.Parse(absolutePath + urlStr)
+	rel, errp := url.Parse(c.ApiMetadata.AbsolutePath + urlStr)
 	if errp != nil {
 		return nil, errp
 	}
@@ -139,7 +149,7 @@ func (c *Client) NewUploadRequest(ctx context.Context, method, urlStr string, bo
 
 	req.Header.Add("Content-Type", "application/octet-stream")
 	req.Header.Add("Accept", "application/octet-stream")
-	req.Header.Add("User-Agent", c.UserAgent)
+	req.Header.Add("User-Agent", c.ApiMetadata.UserAgent)
 	req.Header.Add("Authorization", "Basic "+
 		base64.StdEncoding.EncodeToString([]byte(c.Credentials.Username+":"+c.Credentials.Password)))
 

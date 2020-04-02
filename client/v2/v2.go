@@ -1,25 +1,25 @@
-package v3
+package v2
 
 import (
 	"github.com/terraform-providers/terraform-provider-nutanix/client"
 )
 
 const (
-	libraryVersion = "v3"
+	libraryVersion = "v2.0"
 	defaultBaseURL = "https://%s/"
-	absolutePath   = "api/nutanix/" + libraryVersion
+	absolutePath   = "/PrismGateway/services/rest/" + libraryVersion
 	userAgent      = "nutanix/" + libraryVersion
 	mediaType      = "application/json"
 )
 
-// Client manages the V3 API
+// Client manages the V2 API
 type Client struct {
 	client *client.Client
-	V3     Service
+	V2     Service
 }
 
-// NewV3Client return a client to operate V3 resources
-func NewV3Client(credentials client.Credentials) (*Client, error) {
+// NewV2Client return a client to operate V2 resources
+func NewV2Client(credentials client.Credentials) (*Client, error) {
 	c, err := client.NewClient(&credentials, &client.ApiMetadata{
 		LibraryVersion: libraryVersion,
 		DefaultBaseURL: defaultBaseURL,
@@ -35,7 +35,7 @@ func NewV3Client(credentials client.Credentials) (*Client, error) {
 
 	f := &Client{
 		client: c,
-		V3: Operations{
+		V2: Operations{
 			client: c,
 		},
 	}
