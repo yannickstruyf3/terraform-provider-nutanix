@@ -345,6 +345,94 @@ func testAccCheckNutanixVirtualMachineDestroy(s *terraform.State) error {
 	return nil
 }
 
+func TestAccNutanixVirtualMachine_hotadd(t *testing.T) {
+	r := acctest.RandInt()
+	memory_1 := 1024
+	memory_2 := 2048
+	resourceName := "nutanix_virtual_machine.vm10"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNutanixVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNutanixVMConfigHotAdd(r, memory_1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "hardware_clock_timezone", "UTC"),
+					resource.TestCheckResourceAttr(resourceName, "power_state", "ON"),
+					resource.TestCheckResourceAttr(resourceName, "memory_size_mib", "1024"),
+					resource.TestCheckResourceAttr(resourceName, "num_sockets", "1"),
+					resource.TestCheckResourceAttr(resourceName, "num_vcpus_per_socket", "1"),
+					resource.TestCheckResourceAttr(resourceName, "use_hot_add", "true"),
+				),
+			},
+			{
+				Config: testAccNutanixVMConfigHotAdd(r, memory_2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "hardware_clock_timezone", "UTC"),
+					resource.TestCheckResourceAttr(resourceName, "power_state", "ON"),
+					resource.TestCheckResourceAttr(resourceName, "memory_size_mib", "2048"),
+					resource.TestCheckResourceAttr(resourceName, "num_sockets", "1"),
+					resource.TestCheckResourceAttr(resourceName, "num_vcpus_per_socket", "1"),
+					resource.TestCheckResourceAttr(resourceName, "use_hot_add", "true"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disk_list"},
+			},
+		},
+	})
+}
+
+func TestAccNutanixVirtualMachine_nohotadd(t *testing.T) {
+	r := acctest.RandInt()
+	memory_1 := 1024
+	memory_2 := 2048
+	resourceName := "nutanix_virtual_machine.vm10"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNutanixVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNutanixVMConfigNoHotAdd(r, memory_1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "hardware_clock_timezone", "UTC"),
+					resource.TestCheckResourceAttr(resourceName, "power_state", "ON"),
+					resource.TestCheckResourceAttr(resourceName, "memory_size_mib", "1024"),
+					resource.TestCheckResourceAttr(resourceName, "num_sockets", "1"),
+					resource.TestCheckResourceAttr(resourceName, "num_vcpus_per_socket", "1"),
+					resource.TestCheckResourceAttr(resourceName, "use_hot_add", "false"),
+				),
+			},
+			{
+				Config: testAccNutanixVMConfigNoHotAdd(r, memory_2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNutanixVirtualMachineExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "hardware_clock_timezone", "UTC"),
+					resource.TestCheckResourceAttr(resourceName, "power_state", "ON"),
+					resource.TestCheckResourceAttr(resourceName, "memory_size_mib", "2048"),
+					resource.TestCheckResourceAttr(resourceName, "num_sockets", "1"),
+					resource.TestCheckResourceAttr(resourceName, "num_vcpus_per_socket", "1"),
+					resource.TestCheckResourceAttr(resourceName, "use_hot_add", "false"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disk_list", "use_hot_add"},
+			},
+		},
+	})
+}
+
 func testAccNutanixVMConfig(r int) string {
 	return fmt.Sprintf(`
 		data "nutanix_clusters" "clusters" {}
@@ -829,4 +917,47 @@ func testAccNutanixVMConfigCloningVM(r int) string {
 			}
 		}
 	`, r)
+}
+func testAccNutanixVMConfigHotAdd(r, memory int) string {
+	return fmt.Sprintf(`
+		data "nutanix_clusters" "clusters" {}
+
+		locals {
+			cluster1 = "${data.nutanix_clusters.clusters.entities.0.service_list.0 == "PRISM_CENTRAL"
+			? data.nutanix_clusters.clusters.entities.1.metadata.uuid : data.nutanix_clusters.clusters.entities.0.metadata.uuid}"
+		}
+
+		resource "nutanix_virtual_machine" "vm10" {
+			name         = "test-dou-%d"
+			cluster_uuid = "${local.cluster1}"
+
+			num_vcpus_per_socket  = 1
+			num_sockets           = 1
+			memory_size_mib       = %d
+			power_state_mechanism = "ACPI"
+			use_hot_add           = true
+		}
+	`, r, memory)
+}
+
+func testAccNutanixVMConfigNoHotAdd(r, memory int) string {
+	return fmt.Sprintf(`
+		data "nutanix_clusters" "clusters" {}
+
+		locals {
+			cluster1 = "${data.nutanix_clusters.clusters.entities.0.service_list.0 == "PRISM_CENTRAL"
+			? data.nutanix_clusters.clusters.entities.1.metadata.uuid : data.nutanix_clusters.clusters.entities.0.metadata.uuid}"
+		}
+
+		resource "nutanix_virtual_machine" "vm10" {
+			name         = "test-dou-%[1]d"
+			cluster_uuid = "${local.cluster1}"
+
+			num_vcpus_per_socket  = 1
+			num_sockets           = 1
+			memory_size_mib       = %[2]d
+			power_state_mechanism = "ACPI"
+			use_hot_add           = false
+		}
+	`, r, memory)
 }
