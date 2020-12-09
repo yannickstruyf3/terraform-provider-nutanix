@@ -162,7 +162,6 @@ func resourceNutanixKarbonPrivateRegistryExists(d *schema.ResourceData, meta int
 	log.Print("[DEBUG] Entering resourceNutanixKarbonPrivateRegistryExists")
 	conn := meta.(*Client).KarbonAPI
 	setTimeout(meta)
-	// Make request to the API
 	var name interface{}
 	var ok bool
 	if name, ok = d.GetOk("name"); !ok {
