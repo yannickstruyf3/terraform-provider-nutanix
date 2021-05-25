@@ -183,7 +183,7 @@ func TestAccNutanixVirtualMachine_updateFields(t *testing.T) {
 }
 
 func TestAccNutanixVirtualMachine_WithSubnet(t *testing.T) {
-	r := acctest.RandIntRange(101, 110)
+	r := acctest.RandIntRange(201, 210)
 	resourceName := "nutanix_virtual_machine.vm3"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
