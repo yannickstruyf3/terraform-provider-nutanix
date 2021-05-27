@@ -171,7 +171,7 @@ resource "nutanix_role" "test" {
 	description = "description role"
 	permission_reference_list {
 		kind = "permission"
-		uuid = "2e9988df-47ae-44ae-9114-ada346657b90"
+		uuid = "618cafec-9bc4-401a-bde9-5f61cf0263a3"
 	}
 }
 resource "nutanix_access_control_policy" "test" {
@@ -192,7 +192,7 @@ resource "nutanix_role" "test" {
 	description = "description role"
 	permission_reference_list {
 		kind = "permission"
-		uuid = "2e9988df-47ae-44ae-9114-ada346657b90"
+		uuid = "618cafec-9bc4-401a-bde9-5f61cf0263a3"
 	}
 }
 resource "nutanix_access_control_policy" "test" {
@@ -217,7 +217,7 @@ resource "nutanix_role" "test" {
 	description = "description role"
 	permission_reference_list {
 		kind = "permission"
-		uuid = "2e9988df-47ae-44ae-9114-ada346657b90"
+		uuid = "618cafec-9bc4-401a-bde9-5f61cf0263a3"
 	}
 }
 resource "nutanix_access_control_policy" "test" {

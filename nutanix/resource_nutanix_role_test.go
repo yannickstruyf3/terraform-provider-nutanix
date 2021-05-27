@@ -200,7 +200,7 @@ resource "nutanix_role" "test" {
 	}
 	permission_reference_list {
 		kind = "permission"
-		uuid = "2e9988df-47ae-44ae-9114-ada346657b90"
+		uuid = "618cafec-9bc4-401a-bde9-5f61cf0263a3"
 	}
 	permission_reference_list {
 		kind = "permission"
@@ -208,11 +208,11 @@ resource "nutanix_role" "test" {
 	}
 	permission_reference_list {
 		kind = "permission"
-		uuid = "2e9988df-47ae-44ae-9114-ada346657b90"
+		uuid = "618cafec-9bc4-401a-bde9-5f61cf0263a3"
 	}
 	permission_reference_list {
 		kind = "permission"
-		uuid = "2e9988df-47ae-44ae-9114-ada346657b90"
+		uuid = "618cafec-9bc4-401a-bde9-5f61cf0263a3"
 	}
 }
 `, name, description)
@@ -225,7 +225,7 @@ resource "nutanix_role" "test" {
 	description = "%[2]s"
 	permission_reference_list {
 		kind = "permission"
-		uuid = "2e9988df-47ae-44ae-9114-ada346657b90"
+		uuid = "618cafec-9bc4-401a-bde9-5f61cf0263a3"
 	}
 	categories {
 		name = "Environment"
