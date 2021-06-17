@@ -10,8 +10,8 @@ import (
 func TestAccNutanixKarbonClustersDataSource_basic(t *testing.T) {
 	r := acctest.RandInt()
 	//resourceName := "nutanix_karbon_cluster.cluster"
-	subnetName := "Rx-Automation-Network"
-	defaultContainter := "default-container-85827904983728"
+	subnetName := "test-network"
+	defaultContainter := "terratest_container"
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
