@@ -2,6 +2,7 @@ package nutanix
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -103,7 +104,7 @@ func flattenNicList(nics []*v3.VMNic) []map[string]interface{} {
 	return nicLists
 }
 
-func usesGuestCustomization(d *schema.ResourceData) bool {
+func usesGuestCustomization(d *schema.ResourceData, guestCust *v3.GuestCustomization) bool {
 	keys := []string{
 		"guest_customization_cloud_init_user_data",
 		"guest_customization_cloud_init_meta_data",
@@ -116,7 +117,11 @@ func usesGuestCustomization(d *schema.ResourceData) bool {
 			return true
 		}
 	}
-	return false
+	// if guestCust != nil {
+	// 	return true
+	// }
+	return guestCust != nil
+	// return false
 }
 
 func getDeviceIndexForDisk(disk *v3.VMDisk) (*int64, error) {
@@ -133,33 +138,40 @@ func getDeviceIndexForDisk(disk *v3.VMDisk) (*int64, error) {
 	return &diskIndex, nil
 }
 
-func flattenDiskListFilterCloudInit(d *schema.ResourceData, disks []*v3.VMDisk) ([]map[string]interface{}, error) {
+func flattenDiskListFilterCloudInit(d *schema.ResourceData, disks []*v3.VMDisk, guestCust *v3.GuestCustomization) ([]map[string]interface{}, error) {
 	//todo check if guestcust is passed -> if it is not passed, just continue without searching for cloud-init uuid
 	// reason: no device_index or disk id will result in crash
+
 	cloudInitCdromUUID := ""
 	if cloudInitCdromUUIDInput, cliOk := d.GetOk("cloud_init_cdrom_uuid"); cliOk {
 		cloudInitCdromUUID = cloudInitCdromUUIDInput.(string)
 	}
+	log.Printf("[YST] cloudInitCdromUUID: %s", cloudInitCdromUUID)
+	utils.PrintToJSON(d, "[YST] flattenDiskListFilterCloudInit d: ")
 	filteredDiskList := disks
 	potentialCloudInitIDs := make([]string, 0)
-	if cloudInitCdromUUID == "" && usesGuestCustomization(d) {
+	if cloudInitCdromUUID == "" && usesGuestCustomization(d, guestCust) {
+		log.Print("[YST] Entering usesGuestCustomization loop")
 		filteredDiskList = make([]*v3.VMDisk, 0)
 		//expand the user inputted list of disks
 		expandedOrgDiskList := expandDiskList(d)
 		//extract the CD-rom drives
 		userCdromDiskList := GetCdromDiskList(expandedOrgDiskList)
+		utils.PrintToJSON(userCdromDiskList, "[YST] userCdromDiskList: ")
 		for _, eDisk := range disks {
 			//if existing disk is not CD-rom, append it to the list and continue
 			if !isCdromDisk(eDisk) {
 				filteredDiskList = append(filteredDiskList, eDisk)
 				continue
 			} else {
+				utils.PrintToJSON(eDisk, "[YST] CDrom Disk found: ")
 				//Get existing CDrom device Index
 				eDiskIndexP, err := getDeviceIndexForDisk(eDisk) //*eDisk.DeviceProperties.DiskAddress.DeviceIndex
 				if err != nil {
 					return nil, err
 				}
 				eDiskIndex := *eDiskIndexP
+				utils.PrintToJSON(eDiskIndex, "[YST] CDrom eDiskIndex: ")
 				match := false
 				// Loop over the user defined cdrom drives
 				for _, uDisk := range userCdromDiskList {
