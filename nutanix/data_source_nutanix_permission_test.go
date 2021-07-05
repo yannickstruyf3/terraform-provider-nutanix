@@ -9,7 +9,7 @@ import (
 
 const (
 	PERMISSIONNAME = "Access_Console_Virtual_Machine"
-	PERMISSINOUUID = "16b81a55-2bca-48c6-9fab-4f82c6bb4284"
+	PERMISSINOUUID = "178e1e72-a46f-4b1d-b12b-c53c2c2db83c"
 )
 
 func TestAccNutanixPermissionDataSource_basic(t *testing.T) {

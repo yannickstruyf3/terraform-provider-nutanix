@@ -10,7 +10,7 @@ import (
 func TestAccNutanixUserGroupDataSource_basic(t *testing.T) {
 	distinguishedName := "cn=dou-group-1,cn=users,dc=ntnxlab,dc=local"
 	displayName := "dou-group-1"
-	uuid := "d12fa0a3-13f1-4f5d-b773-c8e2f8144f0e"
+	uuid := "f483f749-f4b7-4a92-bfc2-83b99dd22bb8"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -40,7 +40,7 @@ data "nutanix_user_group" "test" {
 func TestAccNutanixUserGroupDataSource_ByName(t *testing.T) {
 	distinguishedName := "cn=dou-group-1,cn=users,dc=ntnxlab,dc=local"
 	displayName := "dou-group-1"
-	uuid := "d12fa0a3-13f1-4f5d-b773-c8e2f8144f0e"
+	uuid := "f483f749-f4b7-4a92-bfc2-83b99dd22bb8"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -73,7 +73,7 @@ data "nutanix_user_group" "test" {
 func TestAccNutanixUserGroupDataSource_ByDistinguishedName(t *testing.T) {
 	distinguishedName := "cn=dou-group-1,cn=users,dc=ntnxlab,dc=local"
 	displayName := "dou-group-1"
-	uuid := "d12fa0a3-13f1-4f5d-b773-c8e2f8144f0e"
+	uuid := "f483f749-f4b7-4a92-bfc2-83b99dd22bb8"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
